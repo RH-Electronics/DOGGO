@@ -7,7 +7,7 @@
 - **Inverse Kinematics (IK)** for leg control
 - **Support for LSC Serial Servo Controller** (Hiwonder Bus)
 - **Serial communication** (via PC or Raspberry Pi)
-- **Various postures and walking modes** (stand, sit, walk, etc.)
+- **Postures and walking mode, Work still in pregress!** (stand, sit, walk, etc.)
 - **Sensor integration support (future feature)**
 
 ---
