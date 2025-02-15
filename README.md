@@ -71,7 +71,7 @@ DOGGO/
 
 ## 📌 Future Enhancements
 - 🚀 **Integration of sensors (BNO055)**
-- **Add more commands**
+- 🚀 **Add more commands**
 - 🤖 **Autonomous mode support**
 - 🔥 **AI LLM integration, control via Raspberry Pi**
 
