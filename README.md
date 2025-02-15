@@ -1,6 +1,7 @@
 # 🐶 DOGGO Controller
 
 **DOGGO Controller** is a firmware for controlling a quadruped robot based on **Teensy 4.0** with inverse kinematics (IK) and **LX-16A serial bus servos**.
+**Work in Progress** 
 
 ## 🚀 Features
 - **Inverse Kinematics (IK)** for leg control
