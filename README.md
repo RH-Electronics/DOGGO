@@ -49,7 +49,7 @@ Commands are sent via **Serial (115200 baud rate)**.
 
 Example of a command sent via **Serial Monitor**:
 ```
-WALK 15 500
+WALK 40 500
 ```
 ```
 STAND 1000
