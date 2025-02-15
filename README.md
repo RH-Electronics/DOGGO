@@ -16,6 +16,7 @@
 - **LX-16A Serial Bus Servos** (Hiwonder Bus)
 - **LSC Servo Controller** (connected via `Serial1`)
 - **Raspberry Pi / PC** (for sending commands via Serial)
+- **DOGGO Quadruped Robot** [Original DOGGO](https://www.thingiverse.com/thing:4916566) or my remixed 3D model [DOGGO](https://www.thingiverse.com/thing:6950224)
 
 ---
 
