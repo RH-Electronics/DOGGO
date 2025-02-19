@@ -15,7 +15,7 @@
 ## 🛠 Requirements
 - **Teensy 4.0 or Teensy 4.1**
 - **LX-16A Serial Bus Servos** (Hiwonder Bus)
-- **LSC Servo Controller** (connected via `Serial1`)
+- **LSC Servo Controller** (connected via `Serial1`) [Hiwonder Serial Bus Servo Controller](https://www.hiwonder.com/products/serial-bus-servo-controller)
 - **Raspberry Pi / PC** (for sending commands via Serial)
 - **DOGGO Quadruped Robot** [Original DOGGO](https://www.thingiverse.com/thing:4916566) or my remixed 3D model [DOGGO](https://www.thingiverse.com/thing:6950224)
 
