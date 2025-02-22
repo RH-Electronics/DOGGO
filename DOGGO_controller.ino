@@ -32,18 +32,18 @@ const float SERVO_FACTOR = 0.004188790205f;
 uint32_t poseMakeSpeed = 500;
 
 unsigned long lastMoveTime = 0;
-bool isMoving = true;
+bool isMoving = false;
 int stepIndex = 0;
 int stepIndex2 = 1;
 
-enum Status {WALK, SIT, STAND, STANDH, LIEDOWN, GETBAT};
+enum Status {WALK, MOVEL, MOVER, TURNL, TURNR, MOVEBACK, SIT, STAND, STANDH, LIEDOWN, PAWLEFT, PAWRIGHT, GETBAT};
 //initial FSM controller status
 Status currentStatus = STAND;
 
 boolean doneMovement = false; 
 // Переменные для хранения параметров команд
-int walkStepsCount = 10;
-int walkSpeed = 400;
+int walkStepsCount = 50;
+int walkSpeed = 200;
 int walkStepsDone;
 
 
@@ -71,6 +71,7 @@ void setup() {
     poseStand(1000);
     // inital delay for all sensor to boot
     delay(1000);
+    //currentStatus = WALK;
   
 }
 
@@ -78,7 +79,7 @@ void loop() {
   // FSM Controller
   switch(currentStatus){
     case WALK:
-      walkTrotForward(walkStepsCount, walkSpeed);      
+      walkTrotForward(walkStepsCount, walkSpeed);     
       break;
     case STAND:
       poseStand(poseMakeSpeed);
@@ -98,8 +99,32 @@ void loop() {
       doneMovement = false;
       getBat();
       break;
+    case TURNL:
+      break;
+    case TURNR:
+      break;
+    case MOVEL:
+      walkTrotLeft(walkStepsCount, walkSpeed); 
+      break;
+    case MOVER:
+      walkTrotRight(walkStepsCount, walkSpeed); 
+      break;
+    case MOVEBACK:
+      break;
+    case PAWLEFT:
+      poseSit(500);
+      doneMovement = false;
+      wavePaw(poseMakeSpeed, "LEFT", 15);
+      break;
+    case PAWRIGHT:
+      poseSit(500);
+      doneMovement = false;
+      wavePaw(poseMakeSpeed, "RIGHT", 15);
+      break;  
+      
     default:
       // todo: default status
+      
       break;   
   }
 
@@ -107,6 +132,69 @@ void loop() {
     handleSerialCommands();
 
 }
+
+void wavePaw(uint32_t makeSpeed, String paw, uint8_t cycles){
+    float pawSequence[2][3] = {
+        {105.0, 0.0, 180.0},  
+        {105.0, 0.0, 200.0},      
+    };
+   if (doneMovement) return;  // if movement completed return
+ 
+   if (paw == "LEFT"){
+      while (cycles>0){
+          auto anglesFL = frontLeftLeg.getLegAnglesLocal(pawSequence[0][0], pawSequence[0][1], pawSequence[0][2]);
+          // FL Leg servos TIBIA FEMUR COXA
+          int pos7 = 500 + int(anglesFL[0]/SERVO_FACTOR);
+          int pos8 = 500 + int(-anglesFL[1]/SERVO_FACTOR);
+          int pos9 = 500 + int(anglesFL[2]/SERVO_FACTOR);
+          // FL Leg servos TIBIA FEMUR COXA
+          servoController.moveServo(7, pos7, makeSpeed);
+          servoController.moveServo(8, pos8, makeSpeed);
+          servoController.moveServo(9, pos9, makeSpeed);
+          delay(makeSpeed+20);
+          anglesFL = frontLeftLeg.getLegAnglesLocal(pawSequence[1][0], pawSequence[1][1], pawSequence[1][2]);
+          // FL Leg servos TIBIA FEMUR COXA
+          pos7 = 500 + int(anglesFL[0]/SERVO_FACTOR);
+          pos8 = 500 + int(-anglesFL[1]/SERVO_FACTOR);
+          pos9 = 500 + int(anglesFL[2]/SERVO_FACTOR);
+          // FL Leg servos TIBIA FEMUR COXA
+          servoController.moveServo(7, pos7, makeSpeed);
+          servoController.moveServo(8, pos8, makeSpeed);
+          servoController.moveServo(9, pos9, makeSpeed);
+          delay(makeSpeed+20);  
+          cycles = cycles - 1;      
+      }
+      currentStatus = SIT;
+
+
+   }
+   else if (paw == "RIGHT"){
+      while (cycles>0){
+          auto anglesFR = frontRightLeg.getLegAnglesLocal(pawSequence[0][0], pawSequence[0][1], pawSequence[0][2]);
+          int pos1 = 500 + int(-anglesFR[0]/SERVO_FACTOR);
+          int pos2 = 500 + int(anglesFR[1]/SERVO_FACTOR);
+          int pos3 = 500 + int(anglesFR[2]/SERVO_FACTOR);
+          // FR Leg servos TIBIA FEMUR COXA
+          servoController.moveServo(1, pos1, makeSpeed);
+          servoController.moveServo(2, pos2, makeSpeed);
+          servoController.moveServo(3, pos3, makeSpeed);
+          delay(makeSpeed+20);
+          anglesFR = frontRightLeg.getLegAnglesLocal(pawSequence[1][0], pawSequence[1][1], pawSequence[1][2]);
+          pos1 = 500 + int(-anglesFR[0]/SERVO_FACTOR);
+          pos2 = 500 + int(anglesFR[1]/SERVO_FACTOR);
+          pos3 = 500 + int(anglesFR[2]/SERVO_FACTOR);
+          // FR Leg servos TIBIA FEMUR COXA
+          servoController.moveServo(1, pos1, makeSpeed);
+          servoController.moveServo(2, pos2, makeSpeed);
+          servoController.moveServo(3, pos3, makeSpeed);
+          delay(makeSpeed+20);          
+          cycles = cycles - 1;      
+      }
+      currentStatus = SIT;    
+   }
+   
+}
+
 
 void poseSit(uint32_t makeSpeed) {
     float sitPose[4][3] = {
@@ -120,20 +208,20 @@ void poseSit(uint32_t makeSpeed) {
 
 void poseStand(uint32_t makeSpeed) {
     float standPose[4][3] = {
-        {0.0, 0.0, 200.0},   // Front Left
-        {0.0, 0.0, 200.0},   // Front Right
-        {0.0, 0.0, 200.0},   // Back Left
-        {0.0, 0.0, 200.0}    // Back Right
+        {0.0, 0.0, 180.0},   // Front Left
+        {0.0, 0.0, 180.0},   // Front Right
+        {-50.0, 0.0, 200.0},   // Back Left
+        {-50.0, 0.0, 200.0}    // Back Right
     };
     moveToPose(standPose, makeSpeed);
 }
 
 void poseStandHigh(uint32_t makeSpeed) {
     float standPose[4][3] = {
-        {0.0, 0.0, 280.0},   // Front Left
-        {0.0, 0.0, 280.0},   // Front Right
-        {0.0, 0.0, 280.0},   // Back Left
-        {0.0, 0.0, 280.0}    // Back Right
+        {0.0, 0.0, 270.0},   // Front Left
+        {0.0, 0.0, 270.0},   // Front Right
+        {-30.0, 0.0, 280.0},   // Back Left
+        {-30.0, 0.0, 280.0}    // Back Right
     };
     moveToPose(standPose, makeSpeed);
 }
@@ -156,14 +244,94 @@ void poseLieDown(uint32_t makeSpeed) {
           lastMoveTime = millis(); // Запоминаем время старта движения
       }
   
+      if (millis() - lastMoveTime >= walkSpeed) {
+          lastMoveTime = millis(); // Обновляем время старта нового движения
+  
+          // Координаты для разных позиций
+          float fStep[4][3] = {0.0,0.0,240.0,
+                               -10.0,0.0,225.0,
+                               30.0,0.0,225.0,
+                               -5.0,0.0,240.0};
+
+          float xi = fStep[stepIndex][0];
+          float yi = fStep[stepIndex][1];
+          float zi = fStep[stepIndex][2];
+
+          auto anglesFL = frontLeftLeg.getLegAnglesLocal(xi+50.0,yi,zi-30.0);
+
+          int pos7 = 500 + int(anglesFL[0]/SERVO_FACTOR);
+          int pos8 = 500 + int(-anglesFL[1]/SERVO_FACTOR);
+          int pos9 = 500 + int(anglesFL[2]/SERVO_FACTOR);
+
+          auto anglesBR = backRightLeg.getLegAnglesLocal(xi-50.0,yi,zi+15.0);
+
+          int pos4 = 500 + int(-anglesBR[0]/SERVO_FACTOR);
+          int pos5 = 500 + int(anglesBR[1]/SERVO_FACTOR);
+          int pos12 = 500 + int(-anglesBR[2]/SERVO_FACTOR);
+          
+          xi = fStep[stepIndex2][0];
+          yi = fStep[stepIndex2][1];
+          zi = fStep[stepIndex2][2];
+
+          auto anglesBL = backLeftLeg.getLegAnglesLocal(xi-50.0,yi,zi+15.0);
+
+          int pos10 = 500 + int(anglesBL[0]/SERVO_FACTOR);
+          int pos11 = 500 + int(-anglesBL[1]/SERVO_FACTOR);
+          int pos6 = 500 + int(-anglesBL[2]/SERVO_FACTOR);
+      
+          auto anglesFR = frontRightLeg.getLegAnglesLocal(xi+50.0,yi,zi-30.0);   
+     
+          int pos1 = 500 + int(-anglesFR[0]/SERVO_FACTOR);
+          int pos2 = 500 + int(anglesFR[1]/SERVO_FACTOR);
+          int pos3 = 500 + int(anglesFR[2]/SERVO_FACTOR);
+
+
+      
+          // Moving all servos according legs group for trot
+          servoController.moveServo(1, pos1, walkSpeed);
+          servoController.moveServo(2, pos2, walkSpeed);
+          servoController.moveServo(3, pos3, walkSpeed);
+          servoController.moveServo(7, pos7, walkSpeed);
+          servoController.moveServo(8, pos8, walkSpeed);
+          servoController.moveServo(9, pos9, walkSpeed);
+
+          servoController.moveServo(10, pos10, walkSpeed);
+          servoController.moveServo(11, pos11, walkSpeed);
+          servoController.moveServo(6, pos6, walkSpeed);
+          servoController.moveServo(4, pos4, walkSpeed);
+          servoController.moveServo(5, pos5, walkSpeed);
+          servoController.moveServo(12, pos12, walkSpeed);
+            
+          stepIndex = (stepIndex + 1) % 4;    // Переключаем шаги
+          stepIndex2 = (stepIndex2 + 1) % 4;  // Переключаем шаги 
+          
+          //SERIAL_PORT.println(walkStepsDone);
+          if (walkStepsDone<=0){
+            doneMovement = false;
+            isMoving = false;
+            currentStatus = STAND;
+          }
+          walkStepsDone = walkStepsDone - 1;
+      }
+  }
+
+
+  void walkTrotLeft(uint32_t walkStepsCount, uint32_t walkSpeed) {
+      if (!isMoving) {
+          isMoving = true;
+          walkStepsDone = walkStepsCount;
+          lastMoveTime = millis(); // Запоминаем время старта движения
+      }
+  
       if (millis() - lastMoveTime >= walkSpeed + 50) {
           lastMoveTime = millis(); // Обновляем время старта нового движения
   
           // Координаты для разных позиций
-          float fStep[4][3] = {25.0,10.0,230.0,
-                               -40.0,10.0,230.0,
-                               -40.0,-10.0,200.0,
-                               25.0,-10.0,200.0};
+          float fStep[4][3] = 
+                   {0.0, 20.0, 220.0,     
+                    0.0, -20.0, 220.0,     
+                    0.0, -20.0, 200.0,    
+                    0.0, 20.0, 200.0};   
 
           float xi = fStep[stepIndex][0];
           float yi = fStep[stepIndex][1];
@@ -227,6 +395,84 @@ void poseLieDown(uint32_t makeSpeed) {
   }
 
 
+  void walkTrotRight(uint32_t walkStepsCount, uint32_t walkSpeed) {
+      if (!isMoving) {
+          isMoving = true;
+          walkStepsDone = walkStepsCount;
+          lastMoveTime = millis(); // Запоминаем время старта движения
+      }
+  
+      if (millis() - lastMoveTime >= walkSpeed + 50) {
+          lastMoveTime = millis(); // Обновляем время старта нового движения
+  
+          // Координаты для разных позиций
+          float fStep[4][3] = 
+                   {0.0, -20.0, 220.0,     
+                    0.0, 20.0, 220.0,     
+                    0.0, 20.0, 200.0,    
+                    0.0, -20.0, 200.0};   
+
+          float xi = fStep[stepIndex][0];
+          float yi = fStep[stepIndex][1];
+          float zi = fStep[stepIndex][2];
+
+          auto anglesFL = frontLeftLeg.getLegAnglesLocal(xi,yi,zi);
+
+          int pos7 = 500 + int(anglesFL[0]/SERVO_FACTOR);
+          int pos8 = 500 + int(-anglesFL[1]/SERVO_FACTOR);
+          int pos9 = 500 + int(anglesFL[2]/SERVO_FACTOR);
+
+          auto anglesBR = backRightLeg.getLegAnglesLocal(xi,yi,zi);
+
+          int pos4 = 500 + int(-anglesBR[0]/SERVO_FACTOR);
+          int pos5 = 500 + int(anglesBR[1]/SERVO_FACTOR);
+          int pos12 = 500 + int(-anglesBR[2]/SERVO_FACTOR);
+          
+          xi = fStep[stepIndex2][0];
+          yi = fStep[stepIndex2][1];
+          zi = fStep[stepIndex2][2];
+
+          auto anglesBL = backLeftLeg.getLegAnglesLocal(xi,yi,zi);
+
+          int pos10 = 500 + int(anglesBL[0]/SERVO_FACTOR);
+          int pos11 = 500 + int(-anglesBL[1]/SERVO_FACTOR);
+          int pos6 = 500 + int(-anglesBL[2]/SERVO_FACTOR);
+      
+          auto anglesFR = frontRightLeg.getLegAnglesLocal(xi,yi,zi);   
+     
+          int pos1 = 500 + int(-anglesFR[0]/SERVO_FACTOR);
+          int pos2 = 500 + int(anglesFR[1]/SERVO_FACTOR);
+          int pos3 = 500 + int(anglesFR[2]/SERVO_FACTOR);
+
+
+      
+          // Moving all servos according legs group for trot
+          servoController.moveServo(1, pos1, walkSpeed);
+          servoController.moveServo(2, pos2, walkSpeed);
+          servoController.moveServo(3, pos3, walkSpeed);
+          servoController.moveServo(7, pos7, walkSpeed);
+          servoController.moveServo(8, pos8, walkSpeed);
+          servoController.moveServo(9, pos9, walkSpeed);
+
+          servoController.moveServo(10, pos10, walkSpeed);
+          servoController.moveServo(11, pos11, walkSpeed);
+          servoController.moveServo(6, pos6, walkSpeed);
+          servoController.moveServo(4, pos4, walkSpeed);
+          servoController.moveServo(5, pos5, walkSpeed);
+          servoController.moveServo(12, pos12, walkSpeed);
+            
+          stepIndex = (stepIndex + 1) % 4;    // Переключаем шаги
+          stepIndex2 = (stepIndex2 + 1) % 4;  // Переключаем шаги 
+          
+          //SERIAL_PORT.println(walkStepsDone);
+          if (walkStepsDone<=0){
+            doneMovement = false;
+            currentStatus = STAND;
+          }
+          walkStepsDone = walkStepsDone - 1;
+      }
+  }
+
 
 void handleSerialCommands() {
     if (SERIAL_PORT.available() > 0) {
@@ -249,12 +495,51 @@ void handleSerialCommands() {
                     walkStepsCount = params.toInt();
                 }
             }
-            else {walkSpeed = 300; walkStepsCount = 16;} //set default minumum 6 cycles for walking = 4 steps, default speed
+            else {walkSpeed = 200; walkStepsCount = 50;} //set default minumum 6 cycles for walking = 4 steps, default speed
             isMoving = false;
+            stepIndex = 0;
+            stepIndex2 = 2;
             currentStatus = WALK;
         }
+
+        else if (baseCommand == "MOVEL") {
+            if (params.length() > 0) {
+                int spacePos = params.indexOf(' ');
+                if (spacePos != -1) {
+                    walkStepsCount = params.substring(0, spacePos).toInt();
+                    walkSpeed = params.substring(spacePos + 1).toInt();
+                } 
+                else {
+                    walkStepsCount = params.toInt();
+                }
+            }
+            else {walkSpeed = 300; walkStepsCount = 40;} //
+            isMoving = false;
+            stepIndex = 0;
+            stepIndex2 = 2;
+            currentStatus = MOVEL;
+        }
+
+        else if (baseCommand == "MOVER") {
+            if (params.length() > 0) {
+                int spacePos = params.indexOf(' ');
+                if (spacePos != -1) {
+                    walkStepsCount = params.substring(0, spacePos).toInt();
+                    walkSpeed = params.substring(spacePos + 1).toInt();
+                } 
+                else {
+                    walkStepsCount = params.toInt();
+                }
+            }
+            else {walkSpeed = 300; walkStepsCount = 16;} //set default minumum 6 cycles for walking = 4 steps, default speed
+            isMoving = false;
+            stepIndex = 0;
+            stepIndex2 = 2;
+            currentStatus = MOVER;
+        }
+        
         else if (baseCommand == "STAND") {
-            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 500;
+            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 1000;
             if (poseMakeSpeed<SPEED_MIN){poseMakeSpeed = SPEED_MIN;}
             if (poseMakeSpeed>SPEED_MAX){poseMakeSpeed = SPEED_MAX;}
             doneMovement = false;
@@ -262,32 +547,47 @@ void handleSerialCommands() {
         }
 
         else if (baseCommand == "STANDH") {
-            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 500;
+            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 1000;
             if (poseMakeSpeed<SPEED_MIN){poseMakeSpeed = SPEED_MIN;}
             if (poseMakeSpeed>SPEED_MAX){poseMakeSpeed = SPEED_MAX;}
             doneMovement = false;
             currentStatus = STANDH;
         }
         else if (baseCommand == "SIT") {
-            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 500;
+            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 1000;
             if (poseMakeSpeed<SPEED_MIN){poseMakeSpeed = SPEED_MIN;}
             if (poseMakeSpeed>SPEED_MAX){poseMakeSpeed = SPEED_MAX;}
             doneMovement = false;
             currentStatus = SIT;
         }
         else if (baseCommand == "LIEDOWN") {
-            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 500;
+            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 1000;
             if (poseMakeSpeed<SPEED_MIN){poseMakeSpeed = SPEED_MIN;}
             if (poseMakeSpeed>SPEED_MAX){poseMakeSpeed = SPEED_MAX;}
             doneMovement = false;
             currentStatus = LIEDOWN;
         }
         else if (baseCommand == "GETBAT") {
-            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 500;
+            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 1000;
             if (poseMakeSpeed<SPEED_MIN){poseMakeSpeed = SPEED_MIN;}
             if (poseMakeSpeed>SPEED_MAX){poseMakeSpeed = SPEED_MAX;}            
             doneMovement = false;
             currentStatus = GETBAT;
+        }
+        else if (baseCommand == "PAWLEFT") {
+            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 100;
+            if (poseMakeSpeed<100){poseMakeSpeed = 100;}
+            if (poseMakeSpeed>SPEED_MAX){poseMakeSpeed = SPEED_MAX;}
+            doneMovement = false;
+            currentStatus = PAWLEFT;
+        }
+
+        else if (baseCommand == "PAWRIGHT") {
+            poseMakeSpeed = (params.length() > 0) ? params.toInt() : 100;   
+            if (poseMakeSpeed<100){poseMakeSpeed = 100;}
+            if (poseMakeSpeed>SPEED_MAX){poseMakeSpeed = SPEED_MAX;}
+            doneMovement = false;
+            currentStatus = PAWRIGHT;
         }
     }
 }
@@ -349,3 +649,4 @@ void moveToPose(const float legPositions[4][3], uint32_t makeSpeed) {
     doneMovement = true;
  
 }
+
